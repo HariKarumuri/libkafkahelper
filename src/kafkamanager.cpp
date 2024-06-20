@@ -5,14 +5,32 @@
 
 
 //need to setup in parent class
-char errstr[512]; 
-rd_kafka_t *rk;
-rd_kafka_conf_t *prod_conf;
+//char errstr[512]; 
+//rd_kafka_t *rk;
+//rd_kafka_conf_t *prod_conf;
+
+//destructor to free space after termination
+KafkaServiceManager::~KafkaServiceManager(){
+    //producer instance
+    if(prod_conf){
+        /* wait for max 10 seconds */
+        rd_kafka_flush(rk, 10 * 1000 );
+        // Destroy the producer instance
+        rd_kafka_destroy(rk);
+    }
+}
+
+//making sure to create one instace of this manager and vcan be used by all 
+KafkaServiceManager& KafkaServiceManager::getInstance(){
+    static KafkaServiceManager obj;
+    //created a obj and return it , ensures only one is created 
+    return obj;
+}
 
 
 dr_msg_cb()
 
-producer_init(std::string server_name,std::string brokers ){
+void producer_init(std::string server_name,std::string brokers ){
     //if generated alredy retun it no need to re initialize it .
     if(prod_conf) return;
     if(!prod_conf){
