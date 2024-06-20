@@ -4,9 +4,10 @@
 class KafkaServiceManager{
     //constructor
     KafkaServiceManager();
-    rd_kafka_t *rk;
+    rd_kafka_t *prod_rk;
     rd_kafka_conf_t *prod_conf;
-    char errstr[512]
+    rd_kafka_t *cons_rk;        // Consumer instance handle
+    rd_kafka_conf_t *cons_conf; // Temporary configuration object
 
 
 public:
