@@ -207,3 +207,12 @@ int main() {
 
     return 0;
 }
+
+
+
+
+
+
+No Centralized Instance: Unlike some MQTT libraries or brokers where a single loop or connection instance might handle all messages, 
+Kafka consumers are usually instantiated per thread or per consumer instance. 
+Each instance handles its own polling and message processing independently.

@@ -12,7 +12,10 @@ extern "C" {
 #endif
 
 //here functions 
-
+EXPORT void kafka_producer_init(char * ,char *  );
+EXPORT void kafka_produce(char * , char * , int );
+EXPORT void kafka_consumer_init(char *,char *,char *, char *);
+EXPORT void kafka_consume(char *);
 
 #ifdef __cplusplus
 }

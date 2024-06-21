@@ -17,5 +17,9 @@ public:
     void rd_kafka_delivery_report_callback(rd_kafka_t *,const rd_kafka_message_t *, void *)
     void producer_init(std::string ,std::string )
     void produce(string , string , int )
+    void consumer_init(std::string ,std::string , std::string  , std::string )
+    void consume(std::string )
 
 }
+
+#endif 

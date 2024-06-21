@@ -62,7 +62,7 @@ void KafkaServiceManager::producer_init(std::string server_name,std::string brok
 
 }
 
-void KafkaServiceManager::produce(string topic , string message, int len){
+void KafkaServiceManager::produce(std::string topic , std::string message, int len){
 
     //check whether initiated
     if(!prod_conf) return ;
@@ -116,6 +116,56 @@ void consumer_init(std::string server_name,std::string broker_hostAndPort, std::
         return 1;
     }
 
+}
+
+void consume(std::string topic){
+    rd_kafka_topic_partition_list_t *topics;
+    topics = rd_kafka_topic_partition_list_new(1);
+    rd_kafka_topic_partition_list_add(topics, topic, RD_KAFKA_PARTITION_UA);
+
+    err = rd_kafka_subscribe(rk, topics);
+    if (err) {
+        fprintf(stderr, "%% Failed to subscribe to %s: %s\n",topic, rd_kafka_err2str(err));
+        return 1;
+    }
+
+    while (run) {
+        rd_kafka_message_t *rkmessage;
+
+        // Poll for messages
+        rkmessage = rd_kafka_consumer_poll(rk, 1000);
+        if (rkmessage) {
+            if (rkmessage->err) {
+                if (rkmessage->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
+                    fprintf(stderr, "%% Reached end of topic %s [%" PRId32 "] "
+                                    "at offset %" PRId64 "\n",
+                            rd_kafka_topic_name(rkmessage->rkt),
+                            rkmessage->partition,
+                            rkmessage->offset);
+                } else if (rkmessage->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
+                    // Ignore
+                } else {
+                    fprintf(stderr, "%% Consume error for topic %s [%" PRId32
+                                    "] offset %" PRId64 ": %s\n",
+                            rd_kafka_topic_name(rkmessage->rkt),
+                            rkmessage->partition,
+                            rkmessage->offset,
+                            rd_kafka_message_errstr(rkmessage));
+                }
+            } else {
+                printf("%% Message (topic %s, partition %" PRId32 ", offset %" PRId64
+                       ", %zd bytes):\n",
+                       rd_kafka_topic_name(rkmessage->rkt),
+                       rkmessage->partition,
+                       rkmessage->offset,
+                       rkmessage->len);
+                printf("%.*s\n",
+                       (int)rkmessage->len, (const char *)rkmessage->payload);
+            }
+
+            rd_kafka_message_destroy(rkmessage);
+        }
+    }
 }
 
 
