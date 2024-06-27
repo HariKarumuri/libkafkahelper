@@ -4,7 +4,7 @@ The Singleton pattern ensures that a class has only one instance and provides a 
 
 ### Applying Singleton to `KafkaServiceManager`
 
-In your code, `KafkaServiceManager` is designed as a Singleton to manage Kafka producers and consumers. Here’s how it fits into the Singleton pattern:
+In our code, `KafkaServiceManager` is designed as a Singleton to manage Kafka producers and consumers. Here’s how it fits into the Singleton pattern:
 
 1. **Private Constructor**: The constructor `KafkaServiceManager::KafkaServiceManager()` is private, preventing direct instantiation of `KafkaServiceManager` objects from outside the class.
 
@@ -14,7 +14,7 @@ In your code, `KafkaServiceManager` is designed as a Singleton to manage Kafka p
 
 ### Example Usage
 
-Here’s how you can use `KafkaServiceManager` in your application:
+Here’s how you can use `KafkaServiceManager` in our application:
 
 ```cpp
 #include <iostream>
@@ -93,4 +93,4 @@ KafkaServiceManager::getInstance().consume("test_topic");
 - Ensure proper initialization and error handling in production code.
 - The Singleton pattern simplifies resource management and access to Kafka functionality across the application.
 
-This documentation outlines how `KafkaServiceManager` implements the Singleton pattern to manage Kafka producers and consumers effectively. Adjust the details and examples as per your specific project requirements and coding standards.
+This documentation outlines how `KafkaServiceManager` implements the Singleton pattern to manage Kafka producers and consumers effectively. Adjust the details and examples as per our specific project requirements and coding standards.
