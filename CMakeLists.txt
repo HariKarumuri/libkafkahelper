@@ -12,7 +12,7 @@ add_library(kafkahelper SHARED
     src/kafkamanager.cpp
 )
 
-target_link_libraries(kafkahelper PRIVATE rdkafka)
+target_link_libraries(kafkahelper PRIVATE pthread rdkafka)
 
 set_target_properties(kafkahelper PROPERTIES
     CXX_STANDARD 11

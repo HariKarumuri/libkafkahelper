@@ -11,7 +11,7 @@
 //rd_kafka_conf_t *prod_conf;
 
 //destructor to free space after termination
-KafkaServiceManager::KafkaServiceManager() : prod_rk(NULL) , prod_conf(NULL) , cons_rk(NULL) ,cons_conf(NULL) , topics(NULL){
+KafkaServiceManager::KafkaServiceManager() : prod_rk(NULL) , prod_conf(NULL) , cons_rk(NULL) ,cons_conf(NULL) , topics(NULL),kRunning(false) {
   
 }
 
@@ -89,11 +89,7 @@ void KafkaServiceManager::produce(std::string topic , std::string message, int l
 
 /* -----------------------------------subcriber part below ----------------------------- */
 
-static volatile sig_atomic_t run=1;
-
-static void stop(int sig) {
-    run = 0;
-}    
+ 
     
 void KafkaServiceManager::consumer_init(std::string server_name,std::string broker_hostAndPort, std::string group_name , std::string group_id){
 
@@ -103,7 +99,7 @@ void KafkaServiceManager::consumer_init(std::string server_name,std::string brok
     char errstr[512];
 
     // Signal handler for clean shutdown
-    signal(SIGINT, stop);
+    signal(SIGINT, KafkaServiceManager::signal_handler);
 
     // Create Kafka client configuration place-holder
     cons_conf = rd_kafka_conf_new();
@@ -129,62 +125,72 @@ void KafkaServiceManager::consumer_init(std::string server_name,std::string brok
 
 }
 
-void KafkaServiceManager::consume(std::string topic){
-    rd_kafka_resp_err_t err;
-    
-    //rd_kafka_topic_partition_list_t *topics;
-    topics = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
 
-    err = rd_kafka_subscribe(cons_rk, topics);
-    if (err) {
-        fprintf(stderr, "%% Failed to subscribe to %s: %s\n",topic, rd_kafka_err2str(err));
-        return ;
-    }
+//req is reader in dds 
 
-    while (run) {
-        rd_kafka_message_t *cons_rkmessage;
+//re rendered one  below
 
-        // Poll for messages
-        cons_rkmessage = rd_kafka_consumer_poll(cons_rk, 1000);
-        if (cons_rkmessage) {
-            if (cons_rkmessage->err) {
-                if (cons_rkmessage->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
-                    fprintf(stderr, "%% Reached end of topic %s [%" PRId32 "] "
-                                    "at offset %" PRId64 "\n",
-                            rd_kafka_topic_name(cons_rkmessage->rkt),
-                            cons_rkmessage->partition,
-                            cons_rkmessage->offset);
-                } else if (cons_rkmessage->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
-                    // Ignore
-                } else {
-                    fprintf(stderr, "%% Consume error for topic %s [%" PRId32
-                                    "] offset %" PRId64 ": %s\n",
-                            rd_kafka_topic_name(cons_rkmessage->rkt),
-                            cons_rkmessage->partition,
-                            cons_rkmessage->offset,
-                            rd_kafka_message_errstr(cons_rkmessage));
-                }
-            } else {
-                printf("%% Message (topic %s, partition %" PRId32 ", offset %" PRId64
-                       ", %zd bytes):\n",
-                       rd_kafka_topic_name(cons_rkmessage->rkt),
-                       cons_rkmessage->partition,
-                       cons_rkmessage->offset,
-                       cons_rkmessage->len);
-                printf("%.*s\n",
-                       (int)cons_rkmessage->len, (const char *)cons_rkmessage->payload);
-            }
+void KafkaServiceManager::consume_messages() {
+    while (kRunning) {
+        rd_kafka_message_t *message = rd_kafka_consumer_poll(cons_rk, 1000);
+        //std::cout<<"message poll triggered above"<<std::endl;
+        if (message) {
+            // Call the callback function for the received message
+            auto& callbackPair = kTopicCbMap[rd_kafka_topic_name(message->rkt)];
+            callbackPair.first(message);  // Call the callback function
 
-            rd_kafka_message_destroy(cons_rkmessage);
+            // You can access req if needed, e.g., callbackPair.second
+
+            rd_kafka_message_destroy(message);
         }
     }
 }
 
+// Function to stop the consumer thread
+void KafkaServiceManager::stop_consumer_thread() {
+    kRunning = false;
+    //std::cout<<"stop_consumer_thread triggered "<<std::endl;
+    if (consumerThread.joinable()) {
+         //std::cout<<"stop_consumer_thread triggered and joined main thread"<<std::endl;
+        consumerThread.join();
+    }
+     //std::cout<<"stop_consumer_thread triggered ended"<<std::endl;
+}
+
+void KafkaServiceManager::set_consumer_callback(void* req, std::string topic, int partition_size, callback_ cb) {
+    // Check if consumer thread is already running
+    if (kRunning) {
+        KafkaServiceManager::stop_consumer_thread();  // Stop existing consumer thread
+    }
+
+    // Initialize topics list
+    topics = rd_kafka_topic_partition_list_new(partition_size);
+    rd_kafka_topic_partition_list_add(topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
+
+    // Subscribe to topic
+    rd_kafka_resp_err_t err = rd_kafka_subscribe(cons_rk, topics);
+    if (err) {
+        fprintf(stderr, "%% Failed to subscribe to %s: %s\n", topic.c_str(), rd_kafka_err2str(err));
+        return;
+    }
+
+    // Store callback function and request as a pair
+    kTopicCbMap[topic] = {cb, req};
+
+    // Start consuming messages in a separate thread
+    kRunning = true;
+    consumerThread = std::thread(&KafkaServiceManager::consume_messages,this);
+}
 
 
 
-
-
-
+void KafkaServiceManager::signal_handler(int sig) {
+    switch (sig) {
+        case SIGINT:
+            fprintf(stderr, "\n%% Caught interrupt signal (Ctrl+C). Terminating consumer.\n");
+            KafkaServiceManager::getInstance().stop_consumer_thread();
+            exit(sig);
+            break;
+    }
+}
 
