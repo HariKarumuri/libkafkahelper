@@ -93,4 +93,4 @@ KafkaServiceManager::getInstance().consume("test_topic");
 - Ensure proper initialization and error handling in production code.
 - The Singleton pattern simplifies resource management and access to Kafka functionality across the application.
 
-This documentation outlines how `KafkaServiceManager` implements the Singleton pattern to manage Kafka producers and consumers effectively. Adjust the details and examples as per our specific project requirements and coding standards.
+This documentation outlines how `KafkaServiceManager` implements the Singleton pattern to manage Kafka producers and consumers effectively. Adjust the details and examples as per your specific project requirements and coding standards.
