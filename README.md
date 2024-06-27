@@ -1,20 +1,26 @@
+## Kafka Helper Library
+
+### Overview
+
+The Kafka Helper Library (`libkafkahelper`) provides a simplified interface for interacting with Apache Kafka, focusing on managing Kafka producers and consumers efficiently. This README outlines the usage and design of the library.
+
 ### Singleton Design Pattern
 
-The Singleton pattern ensures that a class has only one instance and provides a global point of access to that instance. It is useful when you want to control the access to a resource or when a single instance is needed across the entire application.
+The library employs the Singleton design pattern for `KafkaServiceManager`, ensuring there is only one instance managing Kafka resources across the application. This approach simplifies resource management and provides a global point of access to Kafka operations.
 
-### Applying Singleton to `KafkaServiceManager`
+#### `KafkaServiceManager` Class
 
-In our code, `KafkaServiceManager` is designed as a Singleton to manage Kafka producers and consumers. Here’s how it fits into the Singleton pattern:
+The `KafkaServiceManager` class encapsulates the initialization and operation of Kafka producers and consumers. Here’s how it integrates with the Singleton pattern:
 
-1. **Private Constructor**: The constructor `KafkaServiceManager::KafkaServiceManager()` is private, preventing direct instantiation of `KafkaServiceManager` objects from outside the class.
+- **Private Constructor**: The constructor is private, preventing direct instantiation and ensuring that instances are controlled through a static method.
+  
+- **Static Instance**: The static method `getInstance()` returns the Singleton instance of `KafkaServiceManager`, ensuring that all interactions with Kafka are handled through a single object.
+  
+- **Lazy Initialization**: The Singleton instance is initialized lazily, meaning it is created the first time `getInstance()` is called, and subsequent calls return the existing instance.
 
-2. **Static Instance**: The static method `KafkaServiceManager& KafkaServiceManager::getInstance()` provides the single point of access to the unique instance of `KafkaServiceManager`. It ensures that only one instance of `KafkaServiceManager` is created and shared across the application.
+### Usage Example
 
-3. **Lazy Initialization**: The instance of `KafkaServiceManager` (`obj`) is initialized the first time `getInstance()` is called, using a static local variable. This ensures that the instance is created only when it is first needed.
-
-### Example Usage
-
-Here’s how you can use `KafkaServiceManager` in our application:
+Here’s a simple example demonstrating how to use `KafkaServiceManager` in your application:
 
 ```cpp
 #include <iostream>
@@ -31,8 +37,7 @@ int main() {
     // Consume messages from a topic
     KafkaServiceManager::getInstance().consume("topic_name");
 
-    // Destroy resources (automatically done by Singleton destructor)
-    // No need to manually destroy or cleanup KafkaServiceManager
+    // No need to manually destroy KafkaServiceManager - handled by Singleton destructor
 
     return 0;
 }
@@ -43,7 +48,8 @@ int main() {
 #### Class: `KafkaServiceManager`
 
 ##### Purpose
-The `KafkaServiceManager` class manages Kafka producers and consumers as a Singleton instance, ensuring that only one instance exists and is globally accessible throughout the application.
+
+The `KafkaServiceManager` class manages Kafka producers and consumers as a Singleton instance, ensuring efficient resource utilization and global access to Kafka operations.
 
 ##### Public Methods
 
@@ -79,18 +85,8 @@ The `KafkaServiceManager` class manages Kafka producers and consumers as a Singl
 - `rd_kafka_topic_partition_list_t *topics`
   - Pointer to the list of Kafka topics for consumer subscription (`rd_kafka_topic_partition_list_t`).
 
-##### Usage Example
-```cpp
-// Initialize and use KafkaServiceManager
-KafkaServiceManager::getInstance().producer_init("bootstrap.servers", "localhost:9092");
-KafkaServiceManager::getInstance().produce("test_topic", "Hello Kafka!", strlen("Hello Kafka!"));
-KafkaServiceManager::getInstance().consumer_init("bootstrap.servers", "localhost:9092", "test_group", "group_id");
-KafkaServiceManager::getInstance().consume("test_topic");
-```
-
 ##### Notes
 
 - Ensure proper initialization and error handling in production code.
 - The Singleton pattern simplifies resource management and access to Kafka functionality across the application.
 
-This documentation outlines how `KafkaServiceManager` implements the Singleton pattern to manage Kafka producers and consumers effectively. Adjust the details and examples as per your specific project requirements and coding standards.
