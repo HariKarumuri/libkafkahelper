@@ -82,9 +82,9 @@ The `KafkaServiceManager` class manages Kafka producers and consumers as a Singl
 ##### Usage Example
 ```cpp
 // Initialize and use KafkaServiceManager
-KafkaServiceManager::getInstance().producer_init("localhost", "9092");
+KafkaServiceManager::getInstance().producer_init("bootstrap.servers", "localhost:9092");
 KafkaServiceManager::getInstance().produce("test_topic", "Hello Kafka!", strlen("Hello Kafka!"));
-KafkaServiceManager::getInstance().consumer_init("localhost", "9092", "test_group", "group_id");
+KafkaServiceManager::getInstance().consumer_init("bootstrap.servers", "localhost:9092", "test_group", "group_id");
 KafkaServiceManager::getInstance().consume("test_topic");
 ```
 
