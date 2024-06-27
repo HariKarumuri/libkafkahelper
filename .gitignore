@@ -1,0 +1,35 @@
+# Ignore build artifacts and directories
+build/
+bin/
+*.o
+*.out
+*.dll
+*.so
+*.dylib
+
+# Ignore specific build tools generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Ignore Visual Studio Code generated files
+.vscode/
+
+# Ignore JetBrains IDEs generated files
+.idea/
+*.iml
+
+# Ignore Xcode generated files
+*.xcodeproj/
+*.xcworkspace/
+
+# Ignore Eclipse generated files
+.metadata/
+*.project
+*.cproject
+.settings/
+
+# Ignore Qt Creator generated files
+*.pro.user

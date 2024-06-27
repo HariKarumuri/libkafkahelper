@@ -2,6 +2,7 @@
 #include <cstring>
 #include "kafkahelper.h"
 #include "kafkamanager.h"
+#include <signal.h>
 
 
 //need to setup in parent class
@@ -10,6 +11,10 @@
 //rd_kafka_conf_t *prod_conf;
 
 //destructor to free space after termination
+KafkaServiceManager::KafkaServiceManager() : prod_rk(NULL) , prod_conf(NULL) , cons_rk(NULL) ,cons_conf(NULL) , topics(NULL){
+  
+}
+
 KafkaServiceManager::~KafkaServiceManager(){
     //producer instance
     if(prod_conf){
@@ -17,6 +22,11 @@ KafkaServiceManager::~KafkaServiceManager(){
         rd_kafka_flush(prod_rk, 10 * 1000 );
         // Destroy the producer instance
         rd_kafka_destroy(prod_rk);
+    }
+    if(cons_conf){
+    rd_kafka_consumer_close(cons_rk);
+    rd_kafka_topic_partition_list_destroy(topics);
+    rd_kafka_destroy(cons_rk);
     }
 }
 
@@ -41,20 +51,20 @@ void KafkaServiceManager::producer_init(std::string server_name,std::string brok
          prod_conf = rd_kafka_conf_new();  
     }
 
-    if (rd_kafka_conf_set(prod_conf, server_name , broker_hostAndPort, errstr,
+    if (rd_kafka_conf_set(prod_conf, server_name.c_str() , broker_hostAndPort.c_str(), errstr,
                           sizeof(errstr)) != RD_KAFKA_CONF_OK) {
         fprintf(stderr, "%s\n", errstr);
-        return 1;
+        return ;
     }
 
     // before setting prod_rk we call prod_rk to set the delivery report callback
-    rd_kafka_conf_set_dr_msg_cb(prod_conf, rd_kafka_delivery_report_callback);
+   // rd_kafka_conf_set_dr_msg_cb(prod_conf, rd_kafka_delivery_report_callback);
 
     // Create producer instance
     prod_rk = rd_kafka_new(RD_KAFKA_PRODUCER, prod_conf, errstr, sizeof(errstr));
     if (!prod_rk) {
         fprintf(stderr, "%% Failed to create new producer: %s\n", errstr);
-        return 1;
+        return ;
     }
 
     // delivery report callback
@@ -69,7 +79,7 @@ void KafkaServiceManager::produce(std::string topic , std::string message, int l
 
     rd_kafka_resp_err_t err;
 
-    err = rd_kafka_producev(prod_rk,RD_KAFKA_V_TOPIC(topic),RD_KAFKA_V_VALUE((void *)message, len),RD_KAFKA_V_END);
+    err = rd_kafka_producev(prod_rk,RD_KAFKA_V_TOPIC(topic.c_str()),RD_KAFKA_V_VALUE((void *)message.c_str(), len),RD_KAFKA_V_END);
 
      if (err) {
         fprintf(stderr, "%% Failed to produce to topic %s: %s\n",
@@ -78,17 +88,18 @@ void KafkaServiceManager::produce(std::string topic , std::string message, int l
 }
 
 /* -----------------------------------subcriber part below ----------------------------- */
-static volatile sig_atomic_t run = 1;
+
+static volatile sig_atomic_t run=1;
 
 static void stop(int sig) {
     run = 0;
 }    
     
-void consumer_init(std::string server_name,std::string broker_hostAndPort, std::string group_name , std::string group_id){
+void KafkaServiceManager::consumer_init(std::string server_name,std::string broker_hostAndPort, std::string group_name , std::string group_id){
 
     if(cons_conf) return;
 
-    rd_kafka_resp_err_t err;
+    
     char errstr[512];
 
     // Signal handler for clean shutdown
@@ -98,72 +109,74 @@ void consumer_init(std::string server_name,std::string broker_hostAndPort, std::
     cons_conf = rd_kafka_conf_new();
 
     // Set bootstrap broker(s)
-    if (rd_kafka_conf_set(cons_conf, server_name, broker_hostAndPort, errstr,sizeof(errstr)) != RD_KAFKA_CONF_OK) {
+    if (rd_kafka_conf_set(cons_conf, server_name.c_str(), broker_hostAndPort.c_str(), errstr,sizeof(errstr)) != RD_KAFKA_CONF_OK) {
         fprintf(stderr, "%s\n", errstr);
-        return 1;
+        return ;
     }
 
     // Set the consumer group id
-    if (rd_kafka_conf_set(cons_conf, group_name , group_id, errstr,sizeof(errstr)) != RD_KAFKA_CONF_OK) {
+    if (rd_kafka_conf_set(cons_conf, group_name.c_str() , group_id.c_str(), errstr,sizeof(errstr)) != RD_KAFKA_CONF_OK) {
         fprintf(stderr, "%s\n", errstr);
-        return 1;
+        return ;
     }
 
     // Create consumer instance
     cons_rk = rd_kafka_new(RD_KAFKA_CONSUMER, cons_conf, errstr, sizeof(errstr));
     if (!cons_rk) {
         fprintf(stderr, "%% Failed to create new consumer: %s\n", errstr);
-        return 1;
+        return ;
     }
 
 }
 
-void consume(std::string topic){
-    rd_kafka_topic_partition_list_t *topics;
+void KafkaServiceManager::consume(std::string topic){
+    rd_kafka_resp_err_t err;
+    
+    //rd_kafka_topic_partition_list_t *topics;
     topics = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(topics, topic, RD_KAFKA_PARTITION_UA);
+    rd_kafka_topic_partition_list_add(topics, topic.c_str(), RD_KAFKA_PARTITION_UA);
 
-    err = rd_kafka_subscribe(rk, topics);
+    err = rd_kafka_subscribe(cons_rk, topics);
     if (err) {
         fprintf(stderr, "%% Failed to subscribe to %s: %s\n",topic, rd_kafka_err2str(err));
-        return 1;
+        return ;
     }
 
     while (run) {
-        rd_kafka_message_t *rkmessage;
+        rd_kafka_message_t *cons_rkmessage;
 
         // Poll for messages
-        rkmessage = rd_kafka_consumer_poll(rk, 1000);
-        if (rkmessage) {
-            if (rkmessage->err) {
-                if (rkmessage->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
+        cons_rkmessage = rd_kafka_consumer_poll(cons_rk, 1000);
+        if (cons_rkmessage) {
+            if (cons_rkmessage->err) {
+                if (cons_rkmessage->err == RD_KAFKA_RESP_ERR__PARTITION_EOF) {
                     fprintf(stderr, "%% Reached end of topic %s [%" PRId32 "] "
                                     "at offset %" PRId64 "\n",
-                            rd_kafka_topic_name(rkmessage->rkt),
-                            rkmessage->partition,
-                            rkmessage->offset);
-                } else if (rkmessage->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
+                            rd_kafka_topic_name(cons_rkmessage->rkt),
+                            cons_rkmessage->partition,
+                            cons_rkmessage->offset);
+                } else if (cons_rkmessage->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
                     // Ignore
                 } else {
                     fprintf(stderr, "%% Consume error for topic %s [%" PRId32
                                     "] offset %" PRId64 ": %s\n",
-                            rd_kafka_topic_name(rkmessage->rkt),
-                            rkmessage->partition,
-                            rkmessage->offset,
-                            rd_kafka_message_errstr(rkmessage));
+                            rd_kafka_topic_name(cons_rkmessage->rkt),
+                            cons_rkmessage->partition,
+                            cons_rkmessage->offset,
+                            rd_kafka_message_errstr(cons_rkmessage));
                 }
             } else {
                 printf("%% Message (topic %s, partition %" PRId32 ", offset %" PRId64
                        ", %zd bytes):\n",
-                       rd_kafka_topic_name(rkmessage->rkt),
-                       rkmessage->partition,
-                       rkmessage->offset,
-                       rkmessage->len);
+                       rd_kafka_topic_name(cons_rkmessage->rkt),
+                       cons_rkmessage->partition,
+                       cons_rkmessage->offset,
+                       cons_rkmessage->len);
                 printf("%.*s\n",
-                       (int)rkmessage->len, (const char *)rkmessage->payload);
+                       (int)cons_rkmessage->len, (const char *)cons_rkmessage->payload);
             }
 
-            rd_kafka_message_destroy(rkmessage);
+            rd_kafka_message_destroy(cons_rkmessage);
         }
     }
 }
