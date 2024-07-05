@@ -1,0 +1,41 @@
+# Ignore build directories
+build/
+Build/
+BUILD/
+
+# Ignore object files
+*.o
+*.obj
+*.lo
+*.la
+
+# Ignore executable files
+*.exe
+*.out
+*.app
+*.dSYM/
+
+# Ignore dependency files
+*.d
+
+# Ignore compiled shared libraries
+*.so
+*.dylib
+*.dll
+
+# Ignore static libraries
+*.a
+*.lib
+
+# Ignore Python build files
+__pycache__/
+*.py[cod]
+
+# Ignore logs
+*.log
+
+# Ignore backup and temporary files
+*~
+*.swp
+*.swo
+.DS_Store
