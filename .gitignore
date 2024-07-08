@@ -1,35 +1,41 @@
-# Ignore build artifacts and directories
+# Ignore build directories
 build/
-bin/
+Build/
+BUILD/
+
+# Ignore object files
 *.o
+*.obj
+*.lo
+*.la
+
+# Ignore executable files
+*.exe
 *.out
-*.dll
+*.app
+*.dSYM/
+
+# Ignore dependency files
+*.d
+
+# Ignore compiled shared libraries
 *.so
 *.dylib
+*.dll
 
-# Ignore specific build tools generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-*.cmake
+# Ignore static libraries
+*.a
+*.lib
 
-# Ignore Visual Studio Code generated files
-.vscode/
+# Ignore Python build files
+__pycache__/
+*.py[cod]
 
-# Ignore JetBrains IDEs generated files
-.idea/
-*.iml
+# Ignore logs
+*.log
 
-# Ignore Xcode generated files
-*.xcodeproj/
-*.xcworkspace/
-
-# Ignore Eclipse generated files
-.metadata/
-*.project
-*.cproject
-.settings/
-
-# Ignore Qt Creator generated files
-*.pro.user
+# Ignore backup and temporary files
+*~
+*.swp
+*.swo
+.DS_Store

@@ -11,13 +11,13 @@ extern "C" {
 #define EXPORT
 #endif
 
-#include <librdkafka/rdkafka.h>
+#include <rdkafka.h>
 
 //here functions 
-typedef void (*callback_)(rd_kafka_message_t *);
+typedef void (*callback_)(void * , rd_kafka_message_t *);
 
 EXPORT void kafka_producer_init(const char* ,const char*  );
-EXPORT void kafka_produce(const char* , const char* , int );
+EXPORT void kafka_produce(const char* , void* , int );
 EXPORT void kafka_consumer_init(const char*,const char*,const char*, const char*);
 EXPORT void kafka_set_data_callback(void* , const char* , int , callback_ );
 

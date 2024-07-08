@@ -4,7 +4,7 @@
 
 #include <string>
 #include <thread>
-#include <librdkafka/rdkafka.h>
+#include <rdkafka.h>
 #include <kafkahelper.h>
 #include <unordered_map>
 
@@ -36,7 +36,7 @@ public:
     //destructor to free up space , to flush commands 
     static KafkaServiceManager& getInstance();
     void producer_init(std::string ,std::string );
-    void produce(std::string , std::string , int );
+    void produce(std::string , void* , int );
     void consumer_init(std::string ,std::string , std::string  , std::string );
     void set_consumer_callback(void* , std::string , int , callback_ );
 

@@ -72,19 +72,22 @@ void KafkaServiceManager::producer_init(std::string server_name,std::string brok
 
 }
 
-void KafkaServiceManager::produce(std::string topic , std::string message, int len){
-
-    //check whether initiated
-    if(!prod_conf) return ;
+void KafkaServiceManager::produce(std::string topic, void* message, int len) {
+    if (!prod_conf) return;
 
     rd_kafka_resp_err_t err;
 
-    err = rd_kafka_producev(prod_rk,RD_KAFKA_V_TOPIC(topic.c_str()),RD_KAFKA_V_VALUE((void *)message.c_str(), len),RD_KAFKA_V_END);
+    err = rd_kafka_producev(
+        prod_rk,
+        RD_KAFKA_V_TOPIC(topic.c_str()),
+        RD_KAFKA_V_VALUE(message, len),
+        RD_KAFKA_V_END
+    );
 
-     if (err) {
+    if (err) {
         fprintf(stderr, "%% Failed to produce to topic %s: %s\n",
-                topic, rd_kafka_err2str(err));
-              } 
+                topic.c_str(), rd_kafka_err2str(err));
+    }
 }
 
 /* -----------------------------------subcriber part below ----------------------------- */
@@ -130,17 +133,13 @@ void KafkaServiceManager::consumer_init(std::string server_name,std::string brok
 
 //re rendered one  below
 
+
 void KafkaServiceManager::consume_messages() {
     while (kRunning) {
         rd_kafka_message_t *message = rd_kafka_consumer_poll(cons_rk, 1000);
-        //std::cout<<"message poll triggered above"<<std::endl;
         if (message) {
-            // Call the callback function for the received message
             auto& callbackPair = kTopicCbMap[rd_kafka_topic_name(message->rkt)];
-            callbackPair.first(message);  // Call the callback function
-
-            // You can access req if needed, e.g., callbackPair.second
-
+            callbackPair.first(kTopicCbMap[rd_kafka_topic_name(message->rkt)].second,message);
             rd_kafka_message_destroy(message);
         }
     }
